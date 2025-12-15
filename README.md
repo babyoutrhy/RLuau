@@ -1,7 +1,13 @@
 # RLuau (Roblox Luau)
 
-Here, I upload my own semi-legit projects, DCMA if reupload to a diffrent path, especially if added malicious code).
+This repository contains my personal semi-legit Roblox Luau projects.  
+The code is **obfuscated** and provided as-is.
 
-## Credits to these projects
-- rhy
+## Usage & Redistribution
+- Do **not** reupload this repository or its contents under a different path or name  
+- Do **not** add malicious code and redistribute it  
+- Unauthorized redistribution may result in a DMCA takedown
+
+## Credits to this projects
+- rhy  
 - stef
