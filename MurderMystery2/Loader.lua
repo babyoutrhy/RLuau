@@ -1,6 +1,5 @@
--- Unsophisticated UI
-local Unsophisicated = loadstring(game:HttpGet("https://raw.githubusercontent.com/babyoutrhy/UI-Libraries/main/Unsophisticated-UI/source.lua"))()
-local Window = Unsophisicated:CreateWindow("Unsophisicated - Murder Mystery 2")
+local Unsophisticated = loadstring(game:HttpGet("https://raw.githubusercontent.com/babyoutrhy/UI-Libraries/main/Unsophisticated-UI/source.lua"))()
+local Window = Unsophisticated:CreateWindow("Unsophisticated - Murder Mystery 2")
 
 -- Services
 local Players = game:GetService("Players")
@@ -18,6 +17,8 @@ local autofarmEnabled = false
 local collectSpeed = 25
 local collectionDelay = 0.5
 local autofarmThread = nil  -- Track the autofarm thread
+local autofarmStartTime = 0
+local totalSessionCoins = 0
 
 -- Fling system variables
 local isFlinging = false
@@ -1248,12 +1249,25 @@ local function startAutofarm()
     -- Check if coin was successfully collected
     local function wasCoinCollected(coin, initialCoinCount)
         local newCoinCount = getCoinCount()
+        
+        -- Wait up to 0.5s for the GUI to update to handle network delay
+        local startWait = tick()
+        while newCoinCount <= initialCoinCount and (tick() - startWait) < 0.5 do
+            task.wait()
+            newCoinCount = getCoinCount()
+        end
+        
         local coinStillExists = coin and coin:IsDescendantOf(workspace) and coin:FindFirstChild("TouchInterest")
+        
+        local collectedByUs = newCoinCount > initialCoinCount
+        if collectedByUs then
+            totalSessionCoins = totalSessionCoins + (newCoinCount - initialCoinCount)
+        end
         
         -- Coin was collected if:
         -- 1. Coin count increased OR
-        -- 2. Coin no longer exists in workspace
-        return newCoinCount > initialCoinCount or not coinStillExists
+        -- 2. Coin no longer exists in workspace (could be collected by someone else)
+        return collectedByUs or not coinStillExists
     end
 
     -- Stable coin collection with instant teleport for long distances and attempt tracking
@@ -1501,6 +1515,8 @@ MainTab:AddToggle({
         
         autofarmEnabled = state
         if state then
+            autofarmStartTime = os.time()
+            totalSessionCoins = 0
             -- Stop any existing thread first
             if autofarmThread then
                 autofarmThread = nil
@@ -1538,14 +1554,28 @@ MainTab:AddToggle({
     end
 })
 
-MainTab:AddToggle({
-    Text = "ESP",
-    Callback = function(state)
-        if state then
-            enableESP()
+MainTab:AddUpdateLabel({
+    Title = "Session Time",
+    Interval = 1,
+    Callback = function()
+        if not autofarmEnabled then return "Time: 00:00" end
+        local elapsed = os.time() - autofarmStartTime
+        local hours = math.floor(elapsed / 3600)
+        local mins = math.floor((elapsed % 3600) / 60)
+        local secs = elapsed % 60
+        if hours > 0 then
+            return string.format("Time: %02d:%02d:%02d", hours, mins, secs)
         else
-            disableESP()
+            return string.format("Time: %02d:%02d", mins, secs)
         end
+    end
+})
+
+MainTab:AddUpdateLabel({
+    Title = "Session Coins",
+    Interval = 1,
+    Callback = function()
+        return "Total Collected: " .. tostring(totalSessionCoins)
     end
 })
 
@@ -1568,6 +1598,17 @@ MainTab:AddSlider({
     Default = 0.5,
     Callback = function(value)
         collectionDelay = value
+    end
+})
+
+MainTab:AddToggle({
+    Text = "ESP",
+    Callback = function(state)
+        if state then
+            enableESP()
+        else
+            disableESP()
+        end
     end
 })
 
